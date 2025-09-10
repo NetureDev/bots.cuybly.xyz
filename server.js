@@ -1,9 +1,3 @@
-const interval = setInterval(async () => {
-                    if (!spammingFlags[guildId]) {
-                        clearInterval(interval);
-                        intervals.delete(guildId);
-                        return;
-                    }
 // api/bot.js (for Vercel serverless functions)
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes } = require('discord.js');
 
@@ -81,11 +75,17 @@ async function initializeBot() {
                 const type = interaction.options.getString('type').toLowerCase();
                 const guildId = interaction.guild.id;
 
-                if (spammingFlags[guildId]) {
+                // Check if there's actually an active interval, not just a flag
+                if (spammingFlags[guildId] && intervals.has(guildId)) {
                     return interaction.reply({ 
                         embeds: [baseEmbed('Already Running', 'Spamming is already active in this server.')], 
                         ephemeral: true 
                     });
+                }
+
+                // Reset flag if no active interval (cleanup orphaned flags)
+                if (spammingFlags[guildId] && !intervals.has(guildId)) {
+                    spammingFlags[guildId] = false;
                 }
 
                 spammingFlags[guildId] = true;
@@ -109,23 +109,31 @@ async function initializeBot() {
                         return;
                     }
 
-                    for (const channel of guild.channels.cache.values()) {
-                        if (!channel.isTextBased()) continue;
-                        
-                        const nameLower = channel.name.toLowerCase();
-                        if (['cmds', 'announcements', 'invite', '📋update-logs'].some(skip => nameLower.includes(skip))) continue;
+                    try {
+                        for (const channel of guild.channels.cache.values()) {
+                            if (!channel.isTextBased()) continue;
+                            
+                            const nameLower = channel.name.toLowerCase();
+                            if (['cmds', 'announcements', 'invite', '📋update-logs'].some(skip => nameLower.includes(skip))) continue;
 
-                        try {
-                            let message = '';
-                            if (type === 'all') message = '@everyone @here ping';
-                            else if (type === 'everyone') message = '@everyone ping';
-                            else if (type === 'here') message = '@here ping';
+                            try {
+                                let message = '';
+                                if (type === 'all') message = '@everyone @here ping';
+                                else if (type === 'everyone') message = '@everyone ping';
+                                else if (type === 'here') message = '@here ping';
 
-                            await channel.send(message);
-                        } catch (e) {
-                            console.log(`Error sending message to ${channel.name}: ${e.message}`);
-                            continue;
+                                await channel.send(message);
+                            } catch (e) {
+                                console.log(`Error sending message to ${channel.name}: ${e.message}`);
+                                continue;
+                            }
                         }
+                    } catch (error) {
+                        console.error('Error in spam interval:', error);
+                        // Clean up on error
+                        clearInterval(interval);
+                        intervals.delete(guildId);
+                        spammingFlags[guildId] = false;
                     }
                 }, 1000);
 
@@ -134,6 +142,15 @@ async function initializeBot() {
 
             if (commandName === 'end') {
                 const guildId = interaction.guild.id;
+                
+                // Check if actually running
+                if (!spammingFlags[guildId] && !intervals.has(guildId)) {
+                    return interaction.reply({ 
+                        embeds: [baseEmbed('Not Running', 'Spamming is not currently active in this server.')], 
+                        ephemeral: true 
+                    });
+                }
+                
                 spammingFlags[guildId] = false;
                 
                 if (intervals.has(guildId)) {
