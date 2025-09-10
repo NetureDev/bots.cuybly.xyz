@@ -1,14 +1,19 @@
 {
   "name": "discord-bot-persistent",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "author": "Valentine V2",
-  "license": "None",
+  "license": "ISC",
   "dependencies": {
-    "discord.js": "^14.15.1",
-    "dotenv": "^16.1.4"
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
