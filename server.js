@@ -1,3 +1,9 @@
+const interval = setInterval(async () => {
+                    if (!spammingFlags[guildId]) {
+                        clearInterval(interval);
+                        intervals.delete(guildId);
+                        return;
+                    }
 // api/bot.js (for Vercel serverless functions)
 const { Client, GatewayIntentBits, EmbedBuilder, REST, Routes } = require('discord.js');
 
@@ -169,7 +175,7 @@ async function initializeBot() {
 module.exports = async (req, res) => {
     try {
         await initializeBot();
-        res.status(200).json({ status: 'Bot is running' });
+        res.status(200).json({ status: 'Bot is running', version: 'v1', message: 'bots.cuybly.xyz' });
     } catch (error) {
         console.error('Error initializing bot:', error);
         res.status(500).json({ error: 'Failed to initialize bot' });
